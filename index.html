@@ -1833,7 +1833,7 @@ document.addEventListener('change',function(e){
 });
 
 /* ---------- הפעלה: Firebase (מסד נתונים + כניסה עם Google) ---------- */
-var APP_VERSION='3.11.2026f';
+var APP_VERSION='3.11.2026g';
 var fb=null,fs=null,authUser=null;
 var kioskLoc='store';try{kioskLoc=localStorage.getItem('mt_kiosk_loc')||'store';}catch(x){}
 var DEV_ID;try{DEV_ID=localStorage.getItem('mt_dev')||('d'+uid());localStorage.setItem('mt_dev',DEV_ID);}catch(x){DEV_ID='d'+uid();}
@@ -1992,6 +1992,17 @@ function connectPrinter(){
 }
 /* חיבור אוטומטי למדפסת שכבר חוברה פעם (בלי לבחור שוב) */
 var autoBt={busy:false,state:'',err:'',n:0,at:0};
+// אחרי הפעלה מחדש, אנדרואיד צריך "לשמוע" את המדפסת לפני שמתחברים
+function waitAdv(d){
+  if(!d||typeof d.watchAdvertisements!=='function')return Promise.resolve();
+  return new Promise(function(res){
+    var ac=null;try{ac=new AbortController();}catch(x){}
+    var done=false,fin=function(){if(done)return;done=true;try{d.removeEventListener('advertisementreceived',fin);}catch(x){}try{ac&&ac.abort();}catch(x){}res();};
+    try{d.addEventListener('advertisementreceived',fin);}catch(x){}
+    setTimeout(fin,12000);
+    Promise.resolve(d.watchAdvertisements(ac?{signal:ac.signal}:undefined)).catch(function(){fin();});
+  });
+}
 function autoBtSupported(){return !!(navigator.bluetooth&&typeof navigator.bluetooth.getDevices==='function');}
 function autoConnectPrinter(){
   if(!kiosk||printer.connected||autoBt.busy||!autoBtSupported())return;
@@ -2004,7 +2015,7 @@ function autoConnectPrinter(){
     autoBt.count=list.length;
     if(!list.length){autoBt.state='none';throw {code:'none',message:'אין מדפסת שמורה. צריך לחבר פעם אחת ידנית'};}
     var d=list.filter(function(x){return last&&x.name===last;})[0]||list.filter(function(x){return /^(B1|B21|B18|B3|D1)/i.test(x.name||'');})[0]||list[0];
-    return openClient({authorizedDevice:d});
+    return waitAdv(d).then(function(){return openClient({authorizedDevice:d});});
   }),timeout]).then(function(){autoBt.state='ok';},function(e){if(!autoBt.state||autoBt.state==='ok')autoBt.state='fail';autoBt.err=(e&&e.code==='timeout')?'לא ענתה תוך 25 שניות':String((e&&e.message)||e||'').slice(0,140);})
     .then(function(){clearTimeout(to);autoBt.busy=false;kioskPrinterUi();});
 }
@@ -2088,14 +2099,23 @@ var backArmed=false;
 function armBack(){if(backArmed)return;backArmed=true;try{history.pushState({mt:3},'');}catch(x){}}
 try{history.replaceState({mt:1},'');history.pushState({mt:2},'');}catch(x){}
 ['click','pointerup','touchend','keydown'].forEach(function(ev){window.addEventListener(ev,armBack,true);});
-window.addEventListener('popstate',function(){
-  backArmed=false;
-  try{history.pushState({mt:2},'');}catch(x){}
+function onBack(){
   if(kiosk){if(kioskState.exit){kioskState.exit=false;render();}return;}
   if(scan){closeScan();return;}
   var ms=document.querySelectorAll('.modal');if(ms.length){ms[ms.length-1].remove();labelFor=null;certFor=null;return;}
   if(view.name==='detail'||view.name==='new'||view.name==='jlm'||view.name==='sum'||view.name==='settings')go('list');
+}
+window.addEventListener('popstate',function(){
+  backArmed=false;
+  try{history.pushState({mt:2},'');}catch(x){}
+  onBack();
 });
+// באפליקציה המותקנת: CloseWatcher תופס את כפתור "אחורה" לפני שהאפליקציה נסגרת
+function armCloseWatcher(){
+  if(typeof window.CloseWatcher!=='function')return;
+  try{var w=new CloseWatcher();w.onclose=function(){onBack();setTimeout(armCloseWatcher,0);};}catch(x){setTimeout(armCloseWatcher,2000);}
+}
+armCloseWatcher();
 
 /* ---------- התחלה ---------- */
 var SEED_CATALOG=[{"id": "projector", "name": "מקרנציק", "warrantyMonths": 3, "jerusalem": true, "items": [{"id": "pj1", "name": "החלפת פנס", "price": 100, "checked": false}, {"id": "pj2", "name": "שקט", "price": 120, "checked": false}, {"id": "pj3", "name": "לוח", "price": 120, "checked": false}]}, {"id": "octo", "name": "אוצרציק", "warrantyMonths": 3, "jerusalem": true, "items": [{"id": "oc1", "name": "כרטיס מיקרו", "price": 120, "checked": false}, {"id": "oc2", "name": "שקט", "price": 180, "checked": false}, {"id": "oc3", "name": "טאצ' / מסך", "price": 230, "checked": false}]}, {"id": "phone", "name": "טלפונים", "warrantyMonths": 3, "jerusalem": false, "items": [{"id": "ph1", "name": "שקט", "price": 120, "checked": false}, {"id": "ph2", "name": "מסך / מקשים", "price": 80, "checked": false}]}, {"id": "camera", "name": "מצלמות", "warrantyMonths": 6, "jerusalem": false, "models": ["G7", "G9", "SX700", "SX740", "SX720", "SX600", "SX730", "SX710"], "items": [{"id": "cm1", "name": "מסך", "price": null, "checked": false, "prices": {"SX730": 500, "SX740": 500, "SX600": 400, "SX700": 400, "SX710": 400, "SX720": 400, "G7": 900, "G9": 900}}, {"id": "cm2", "name": "בית כרטיס", "price": null, "checked": false, "prices": {"SX600": 350, "SX700": 350, "SX710": 350, "SX720": 350, "G7": 400, "G9": 400}}, {"id": "cm4", "name": "פלט", "price": null, "checked": false, "prices": {"SX730": 300, "SX740": 300, "G7": 450, "G9": 450}}, {"id": "cm5", "name": "כרטיס זיכרון נעול", "price": null, "checked": false, "prices": {"SX730": 300, "SX740": 300}}, {"id": "cm6", "name": "שגיאת כרטיס זיכרון", "price": null, "checked": false, "prices": {"SX730": 350, "SX740": 350}}, {"id": "cm3", "name": "עדשה", "price": null, "checked": false, "prices": {}}]}, {"id": "other", "name": "אחר", "warrantyMonths": 3, "jerusalem": false, "free": true, "items": []}];
