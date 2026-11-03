@@ -1833,7 +1833,7 @@ document.addEventListener('change',function(e){
 });
 
 /* ---------- הפעלה: Firebase (מסד נתונים + כניסה עם Google) ---------- */
-var APP_VERSION='3.11.2026g';
+var APP_VERSION='3.11.2026h';
 var fb=null,fs=null,authUser=null;
 var kioskLoc='store';try{kioskLoc=localStorage.getItem('mt_kiosk_loc')||'store';}catch(x){}
 var DEV_ID;try{DEV_ID=localStorage.getItem('mt_dev')||('d'+uid());localStorage.setItem('mt_dev',DEV_ID);}catch(x){DEV_ID='d'+uid();}
@@ -1934,7 +1934,7 @@ function saveAccess(list){
 }
 
 /* ---------- מדפסת NIIMBOT בבלוטות' ---------- */
-var printer={client:null,connected:false,name:''};
+var printer={client:null,connected:false,name:'',battery:null};
 var pset={dir:'auto',density:3,dpi:'auto',scale:100};
 try{var ps=JSON.parse(localStorage.getItem('mt_printer')||'{}');['dir','density','dpi','scale'].forEach(function(k){if(ps[k]!=null)pset[k]=ps[k];});}catch(x){}
 // נתוני הדגם מהמדפסת עצמה (רזולוציה, רוחב ראש הדפסה, כיוון)
@@ -1961,8 +1961,15 @@ function openClient(opts){
     if(typeof c.on==='function'){
       c.on('disconnect',function(){if(printer.client!==c)return;printer.connected=false;heartbeat();kioskPrinterUi();setTimeout(autoConnectPrinter,5000);});
     }
+    if(typeof c.on==='function'){
+      c.on('heartbeat',function(e){var b=e&&e.data&&e.data.batteryPercents;if(b!=null&&printer.client===c){var ch=printer.battery!==b;printer.battery=b;if(ch)batteryChanged();}});
+      c.on('printerinfofetched',function(e){var b=e&&e.info&&e.info.batteryPercents;if(b!=null&&printer.client===c)printer.battery=b;});
+    }
     return c.connect(opts).then(function(info){
-      printer.client=c;printer.connected=true;setTimeout(heartbeat,500);
+      printer.client=c;printer.connected=true;
+      try{var pi=c.getPrinterInfo&&c.getPrinterInfo();if(pi&&pi.batteryPercents!=null)printer.battery=pi.batteryPercents;}catch(x){}
+      startPrinterHb();
+      setTimeout(heartbeat,500);
       try{printer.name=(info&&info.deviceName)||(c.getPrinterInfo&&c.getPrinterInfo().modelId)||'';}catch(x){printer.name='';}
       try{if(info&&info.deviceName)localStorage.setItem('mt_printer_name',info.deviceName);}catch(x){}
       kioskPrinterUi();
@@ -1986,6 +1993,11 @@ function kioskPrinterUi(){
 }
 window.__printerState=function(){return {connected:printer.connected};};
 window.__printerDrop=function(){if(printer.client)printer.client.disconnect();};
+// בדיקת סוללה של המדפסת כל 30 שניות
+function startPrinterHb(){var c=printer.client;if(!c)return;try{if(c.setHeartbeatInterval)c.setHeartbeatInterval(30000);if(c.startHeartbeat)c.startHeartbeat();}catch(x){}}
+function stopPrinterHb(){var c=printer.client;try{if(c&&c.stopHeartbeat)c.stopHeartbeat();}catch(x){}}
+var lastBatSent=0;
+function batteryChanged(){if(Date.now()-lastBatSent>120000){lastBatSent=Date.now();heartbeat();}}
 function connectPrinter(){
   if(!navigator.bluetooth)return Promise.reject({code:'nobt'});
   return openClient();
@@ -2035,7 +2047,7 @@ function printCanvas(canvas){
 }
 function printLabelFor(r){
   if(!printer.connected)return Promise.reject({message:'המדפסת לא מחוברת'});
-  var go2=function(){return printCanvas(drawLabel(r,true));};
+  var go2=function(){stopPrinterHb();var p=printCanvas(drawLabel(r,true));p.then(startPrinterHb,startPrinterHb);return p;};
   if(document.fonts&&document.fonts.load)return Promise.all([document.fonts.load('700 20px Rubik'),document.fonts.load('600 20px Rubik')]).catch(function(){}).then(go2);
   return go2();
 }
@@ -2044,7 +2056,7 @@ function printerCard(){
     '<p class="muted sm" style="margin-top:0">מצב: <b>'+printerStatusText()+'</b>. במכשיר של הקיוסק מחברים פעם אחת לפני הפעלת מצב קיוסק.</p>'+
     '<p class="sm" style="margin:0 0 8px">חיבור אוטומטי אחרי הדלקה: '+(autoBtSupported()?'<b style="color:var(--ok,#15803d)">פעיל ✓</b>'+(autoBt.n?' <span class="muted">(ניסיונות: '+autoBt.n+(autoBt.count!=null?', מדפסות שמורות: '+autoBt.count:'')+(autoBt.err?', שגיאה: '+esc(autoBt.err):'')+')</span>':''):'<b style="color:var(--warn)">כבוי</b> <span class="muted">(צריך להפעיל הגדרה בכרום. ראה הוראות)</span>')+'</p>'+
     '<div class="btns"><button class="btn" data-act="printerconnect">🖨 חיבור למדפסת</button><button class="btn sec" data-act="printertest">הדפסת בדיקה</button></div>'+
-    (printer.connected?'<p class="muted sm">זוהה: '+printDpi()+' DPI, רוחב הדפסה '+printMaxW()+' נקודות.</p>':'')+
+    (printer.connected&&printer.battery!=null?'<p class="sm">🔋 סוללת המדפסת: <b>'+Math.round(printer.battery)+'%</b></p>':'')+(printer.connected?'<p class="muted sm">זוהה: '+printDpi()+' DPI, רוחב הדפסה '+printMaxW()+' נקודות.</p>':'')+
     '<label class="f" for="pdpi">רזולוציית המדפסת</label>'+
     '<select id="pdpi" data-bind="pdpi" class="sel"><option value="auto"'+(pset.dpi==='auto'?' selected':'')+'>אוטומטי (ברירת מחדל: B1 Pro)</option><option value="203"'+(String(pset.dpi)==='203'?' selected':'')+'>203 (B1 רגילה)</option><option value="300"'+(String(pset.dpi)==='300'?' selected':'')+'>300 (B1 Pro)</option></select>'+
     '<label class="f" for="pscale">גודל ההדפסה: <b id="pscale-v">'+pset.scale+'%</b> (אם המדבקה קטנה מדי, להגדיל)</label>'+
@@ -2058,7 +2070,7 @@ function printerCard(){
 /* ---------- מצב הקיוסקים: כל קיוסק מדווח כל דקה ---------- */
 function heartbeat(){
   if(!kiosk||!fs||S.auth!=='ok')return;
-  var body={kind:'kiosk',loc:kioskLoc,printer:!!printer.connected,printerName:printer.name||'',ts:Date.now(),email:currentEmail()};
+  var body={kind:'kiosk',loc:kioskLoc,printer:!!printer.connected,printerName:printer.name||'',printerBattery:(printer.connected&&printer.battery!=null)?Number(printer.battery):null,ts:Date.now(),email:currentEmail()};
   try{body.srv=firebase.firestore.FieldValue.serverTimestamp();}catch(x){}
   fs.collection('devices').doc(DEV_ID).set(body).catch(function(){});
 }
@@ -2066,7 +2078,7 @@ function deviceOff(){if(fs)fs.collection('devices').doc(DEV_ID).delete().catch(f
 setInterval(heartbeat,60000);
 function hm(t){var d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes());}
 function kioskStatusHtml(only){
-  var locs=only?[only]:['store','jerusalem'],names={store:'קיוסק חנות',jerusalem:'קיוסק ירושלים'};
+  var locs=only?[only]:['store'],names={store:'קיוסק בני ברק',jerusalem:'קיוסק ירושלים'};
   var h='<div class="kst">';
   locs.forEach(function(l){
     var ds=S.devices.filter(function(d){return d.loc===l;}).sort(function(a,b){return (b.ts||0)-(a.ts||0);}),d=ds[0];
@@ -2076,6 +2088,7 @@ function kioskStatusHtml(only){
       var fresh=Date.now()-(d.ts||0)<180000;
       h+=fresh?'<span class="on">● מחובר ומסונכרן</span>':'<span class="off">● לא מחובר</span> <span class="muted">(נראה לאחרונה '+(daysSince(new Date(d.ts).toISOString().slice(0,10))?fmtDate(new Date(d.ts)):'')+' '+hm(d.ts)+')</span>';
       h+=' · '+(fresh&&d.printer?'<span class="on">🖨 מדפסת מחוברת</span>':'<span class="off">🖨 מדפסת לא מחוברת</span>');
+      if(fresh&&d.printer&&d.printerBattery!=null){var bp=Math.max(0,Math.min(100,Math.round(d.printerBattery)));h+=' · <span class="'+(bp<=20?'off':'on')+'">🔋 סוללה '+bp+'%'+(bp<=20?' (להטעין!)':'')+'</span>';}
     }
     h+='</div>';
   });
@@ -2139,7 +2152,7 @@ else{
     var go3=function(){
       subscribe();
       fs.collection('devices').onSnapshot(function(q){
-        S.devices=q.docs.map(function(d){var x=d.data()||{};return {id:d.id,loc:x.loc,printer:!!x.printer,ts:(x.srv&&x.srv.toMillis)?x.srv.toMillis():x.ts};});
+        S.devices=q.docs.map(function(d){var x=d.data()||{};return {id:d.id,loc:x.loc,printer:!!x.printer,printerBattery:(x.printerBattery==null?null:x.printerBattery),ts:(x.srv&&x.srv.toMillis)?x.srv.toMillis():x.ts};});
         if(!kiosk&&(view.name==='list'||view.name==='jlm'))softRender();
       },function(){});
       setTimeout(heartbeat,1500);
