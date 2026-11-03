@@ -1833,7 +1833,7 @@ document.addEventListener('change',function(e){
 });
 
 /* ---------- הפעלה: Firebase (מסד נתונים + כניסה עם Google) ---------- */
-var APP_VERSION='3.11.2026d';
+var APP_VERSION='3.11.2026e';
 var fb=null,fs=null,authUser=null;
 var kioskLoc='store';try{kioskLoc=localStorage.getItem('mt_kiosk_loc')||'store';}catch(x){}
 var DEV_ID;try{DEV_ID=localStorage.getItem('mt_dev')||('d'+uid());localStorage.setItem('mt_dev',DEV_ID);}catch(x){DEV_ID='d'+uid();}
@@ -2077,8 +2077,13 @@ document.addEventListener('click',function(){keepAwake();},true);
 setInterval(keepAwake,30000);
 
 /* כפתור "חזרה" של הטאבלט: לא יוצא מהאתר. בקיוסק לא עושה כלום, ובשאר המסכים חוזר מסך אחד אחורה */
+// כרום מדלג על "מלכודות" שנוצרו בלי נגיעה של משתמש, ולכן מוסיפים מלכודת חדשה בכל נגיעה במסך
+var backArmed=false;
+function armBack(){if(backArmed)return;backArmed=true;try{history.pushState({mt:3},'');}catch(x){}}
 try{history.replaceState({mt:1},'');history.pushState({mt:2},'');}catch(x){}
+['pointerdown','touchstart','keydown','mousedown'].forEach(function(ev){window.addEventListener(ev,armBack,true);});
 window.addEventListener('popstate',function(){
+  backArmed=false;
   try{history.pushState({mt:2},'');}catch(x){}
   if(kiosk){if(kioskState.exit){kioskState.exit=false;render();}return;}
   if(scan){closeScan();return;}
