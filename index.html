@@ -203,7 +203,7 @@ nav.bottom button.plus .ic{background:var(--brand);color:var(--on-brand);width:4
 .kst .ki{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px}
 .kst .ki b{display:block;font-size:14px;margin-bottom:2px}
 .kst .on{color:var(--ok)} .kst .off{color:var(--bad)} .kst .na{color:var(--muted)}
-.kwarn{position:fixed;left:0;right:0;bottom:0;text-align:center;font-size:13px;color:var(--warn);background:var(--warn-l);padding:6px 50px calc(6px + env(safe-area-inset-bottom,0px))}
+.kwarn{cursor:pointer;font-weight:600;position:fixed;left:0;right:0;bottom:0;text-align:center;font-size:13px;color:var(--warn);background:var(--warn-l);padding:6px 50px calc(6px + env(safe-area-inset-bottom,0px))}
 .login{max-width:380px;margin:12vh auto;text-align:center}
 .login .big{font-size:48px}
 .sel{width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px;color:var(--ink)}
@@ -1480,7 +1480,7 @@ function viewKiosk(){
       (ks.err?'<div class="err" style="margin-top:12px">'+esc(ks.err)+'</div>':'')+
       '<button class="btn block kgo" type="submit"'+(ks.busy?' disabled':'')+'>'+(ks.busy?'שולח…':'שליחה')+'</button></form></div>';
   }
-  h+='</div>'+(printer.connected?'':'<div class="kwarn">'+kwarnText()+'</div>')+'<button class="klock" data-act="kioskexit" aria-label="יציאה ממצב קיוסק">🔒<span class="pdot'+(printer.connected?' on':'')+'"></span></button>';
+  h+='</div>'+(printer.connected?'':'<div class="kwarn" data-act="printerconnect">'+kwarnText()+'</div>')+'<button class="klock" data-act="kioskexit" aria-label="יציאה ממצב קיוסק">🔒<span class="pdot'+(printer.connected?' on':'')+'"></span></button>';
   return h;
 }
 function kioskReset(){clearTimeout(kioskTimer);kioskState={done:false,exit:false,busy:false,name:'',phone:'',err:'',agree:false,sig:null};render();}
@@ -1833,7 +1833,7 @@ document.addEventListener('change',function(e){
 });
 
 /* ---------- הפעלה: Firebase (מסד נתונים + כניסה עם Google) ---------- */
-var APP_VERSION='3.11.2026e';
+var APP_VERSION='3.11.2026f';
 var fb=null,fs=null,authUser=null;
 var kioskLoc='store';try{kioskLoc=localStorage.getItem('mt_kiosk_loc')||'store';}catch(x){}
 var DEV_ID;try{DEV_ID=localStorage.getItem('mt_dev')||('d'+uid());localStorage.setItem('mt_dev',DEV_ID);}catch(x){DEV_ID='d'+uid();}
@@ -1969,7 +1969,11 @@ function openClient(opts){
     });
   });
 }
-function kwarnText(){return '🖨 המדפסת לא מחוברת. '+(autoBtSupported()?'מנסה להתחבר לבד… (לוודא שהמדפסת דלוקה)':'לחיבור: לוחצים על 🔒 ← סיסמה ← "חיבור למדפסת"');}
+function kwarnText(){
+  var t='🖨 המדפסת לא מחוברת. ';
+  if(autoBtSupported()&&autoBt.busy)return t+'מנסה להתחבר לבד… או לגעת כאן לחיבור';
+  return t+'לגעת כאן לחיבור';
+}
 // מעדכן את סימון המדפסת בקיוסק בלי למחוק מה שהלקוח מקליד
 function kioskPrinterUi(){
   if(!kiosk)return;
@@ -1977,7 +1981,8 @@ function kioskPrinterUi(){
   var dot=document.querySelector('.klock .pdot');if(dot)dot.classList.toggle('on',!!printer.connected);
   var w=document.querySelector('.kwarn');
   if(printer.connected){if(w)w.remove();}
-  else if(!w){var lk=document.querySelector('.klock');if(lk){w=document.createElement('div');w.className='kwarn';w.textContent=kwarnText();lk.parentNode.insertBefore(w,lk);}}
+  else if(!w){var lk=document.querySelector('.klock');if(lk){w=document.createElement('div');w.className='kwarn';w.setAttribute('data-act','printerconnect');w.textContent=kwarnText();lk.parentNode.insertBefore(w,lk);}}
+  else w.textContent=kwarnText();
 }
 window.__printerState=function(){return {connected:printer.connected};};
 window.__printerDrop=function(){if(printer.client)printer.client.disconnect();};
@@ -1986,21 +1991,22 @@ function connectPrinter(){
   return openClient();
 }
 /* חיבור אוטומטי למדפסת שכבר חוברה פעם (בלי לבחור שוב) */
-var autoBt={busy:false,state:''};
+var autoBt={busy:false,state:'',err:'',n:0,at:0};
 function autoBtSupported(){return !!(navigator.bluetooth&&typeof navigator.bluetooth.getDevices==='function');}
 function autoConnectPrinter(){
   if(!kiosk||printer.connected||autoBt.busy||!autoBtSupported())return;
-  autoBt.busy=true;
+  autoBt.busy=true;autoBt.n++;autoBt.at=Date.now();kioskPrinterUi();
   var last='';try{last=localStorage.getItem('mt_printer_name')||'';}catch(x){}
   var to;
   var timeout=new Promise(function(_,rej){to=setTimeout(function(){rej({code:'timeout'});},25000);});
   Promise.race([navigator.bluetooth.getDevices().then(function(list){
     list=list||[];
-    if(!list.length){autoBt.state='none';throw {code:'none'};}
+    autoBt.count=list.length;
+    if(!list.length){autoBt.state='none';throw {code:'none',message:'אין מדפסת שמורה. צריך לחבר פעם אחת ידנית'};}
     var d=list.filter(function(x){return last&&x.name===last;})[0]||list.filter(function(x){return /^(B1|B21|B18|B3|D1)/i.test(x.name||'');})[0]||list[0];
     return openClient({authorizedDevice:d});
-  }),timeout]).then(function(){autoBt.state='ok';},function(e){if(!autoBt.state||autoBt.state==='ok')autoBt.state='fail';})
-    .then(function(){clearTimeout(to);autoBt.busy=false;});
+  }),timeout]).then(function(){autoBt.state='ok';},function(e){if(!autoBt.state||autoBt.state==='ok')autoBt.state='fail';autoBt.err=(e&&e.code==='timeout')?'לא ענתה תוך 25 שניות':String((e&&e.message)||e||'').slice(0,140);})
+    .then(function(){clearTimeout(to);autoBt.busy=false;kioskPrinterUi();});
 }
 setTimeout(autoConnectPrinter,4000);
 setInterval(autoConnectPrinter,20000);
@@ -2025,7 +2031,7 @@ function printLabelFor(r){
 function printerCard(){
   return '<div class="card" style="margin-top:12px"><div class="h2">מדפסת מדבקות (NIIMBOT)</div>'+
     '<p class="muted sm" style="margin-top:0">מצב: <b>'+printerStatusText()+'</b>. במכשיר של הקיוסק מחברים פעם אחת לפני הפעלת מצב קיוסק.</p>'+
-    '<p class="sm" style="margin:0 0 8px">חיבור אוטומטי אחרי הדלקה: '+(autoBtSupported()?'<b style="color:var(--ok,#15803d)">פעיל ✓</b>':'<b style="color:var(--warn)">כבוי</b> <span class="muted">(צריך להפעיל הגדרה בכרום. ראה הוראות)</span>')+'</p>'+
+    '<p class="sm" style="margin:0 0 8px">חיבור אוטומטי אחרי הדלקה: '+(autoBtSupported()?'<b style="color:var(--ok,#15803d)">פעיל ✓</b>'+(autoBt.n?' <span class="muted">(ניסיונות: '+autoBt.n+(autoBt.count!=null?', מדפסות שמורות: '+autoBt.count:'')+(autoBt.err?', שגיאה: '+esc(autoBt.err):'')+')</span>':''):'<b style="color:var(--warn)">כבוי</b> <span class="muted">(צריך להפעיל הגדרה בכרום. ראה הוראות)</span>')+'</p>'+
     '<div class="btns"><button class="btn" data-act="printerconnect">🖨 חיבור למדפסת</button><button class="btn sec" data-act="printertest">הדפסת בדיקה</button></div>'+
     (printer.connected?'<p class="muted sm">זוהה: '+printDpi()+' DPI, רוחב הדפסה '+printMaxW()+' נקודות.</p>':'')+
     '<label class="f" for="pdpi">רזולוציית המדפסת</label>'+
@@ -2081,7 +2087,7 @@ setInterval(keepAwake,30000);
 var backArmed=false;
 function armBack(){if(backArmed)return;backArmed=true;try{history.pushState({mt:3},'');}catch(x){}}
 try{history.replaceState({mt:1},'');history.pushState({mt:2},'');}catch(x){}
-['pointerdown','touchstart','keydown','mousedown'].forEach(function(ev){window.addEventListener(ev,armBack,true);});
+['click','pointerup','touchend','keydown'].forEach(function(ev){window.addEventListener(ev,armBack,true);});
 window.addEventListener('popstate',function(){
   backArmed=false;
   try{history.pushState({mt:2},'');}catch(x){}
