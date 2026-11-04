@@ -243,6 +243,12 @@ nav.bottom button.plus .ic{background:var(--brand);color:var(--on-brand);width:4
 .kk:active{background:var(--brand-l);transform:translateY(1px)}
 .kk.kfn{flex:1.4;font-size:18px;background:var(--soft)}
 .kk.kspace{flex:4;font-size:18px}
+.kidle{position:fixed;inset:0;z-index:200;background:rgba(10,20,25,.55);display:flex;align-items:center;justify-content:center;padding:20px}
+.kidlebox{background:var(--card);border-radius:22px;padding:30px 34px;text-align:center;width:min(460px,100%);box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.kidleq{font-size:32px;font-weight:700;font-family:var(--f-display)}
+.kidlenum{font-size:84px;font-weight:700;color:var(--bad);line-height:1.1;margin:8px 0;font-family:var(--f-display)}
+.kidlebox p{font-size:19px;color:var(--muted);margin:0 0 16px}
+.kidlego{font-size:24px;padding:18px}
 .kpad{direction:ltr;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:440px;margin:auto;width:100%}
 .kpad .kk{min-height:72px;font-size:32px}
 .kpad .kk.kfn{font-size:20px}
@@ -1892,7 +1898,7 @@ document.addEventListener('change',function(e){
 });
 
 /* ---------- הפעלה: Firebase (מסד נתונים + כניסה עם Google) ---------- */
-var APP_VERSION='4.11.2026c';
+var APP_VERSION='4.11.2026d';
 var fb=null,fs=null,authUser=null;
 var kioskLoc='store';try{kioskLoc=localStorage.getItem('mt_kiosk_loc')||'store';}catch(x){}
 var DEV_ID;try{DEV_ID=localStorage.getItem('mt_dev')||('d'+uid());localStorage.setItem('mt_dev',DEV_ID);}catch(x){DEV_ID='d'+uid();}
@@ -2319,6 +2325,36 @@ document.addEventListener('keydown',function(e){
   else if(e.key===' '){e.preventDefault();kKey('SP');}
   else if(e.key&&e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();kKey(e.key);}
 });
+
+/* ---------- קיוסק: "עדיין כאן?" אחרי זמן בלי נגיעה ---------- */
+var KIDLE={wait:30,waitPrice:60,count:15},kLastTouch=Date.now(),kIdleLeft=0;
+function kHasData(){var ks=kioskState;return !!(String(ks.name||'').trim()||String(ks.phone||'').trim()||String(ks.price||'').trim()||(ks.step||0)>0);}
+function kIdleClose(){var m=document.getElementById('kidle');if(m)m.remove();kIdleLeft=0;}
+function kTouch(){kLastTouch=Date.now();}
+['pointerdown','touchstart','keydown'].forEach(function(ev){window.addEventListener(ev,kTouch,true);});
+function kIdleShow(){
+  kIdleLeft=KIDLE.count;
+  var m=document.createElement('div');m.id='kidle';m.className='kidle';
+  m.innerHTML='<div class="kidlebox" role="dialog" aria-modal="true"><div class="kidleq">עדיין כאן?</div>'+
+    '<div class="kidlenum num" id="kidlenum">'+kIdleLeft+'</div>'+
+    '<p>אם לא תלחצו, הפרטים יימחקו</p>'+
+    '<button type="button" class="btn block kidlego">כן, להמשיך</button></div>';
+  m.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();kIdleClose();kTouch();});
+  document.body.appendChild(m);
+}
+setInterval(function(){
+  var m=document.getElementById('kidle'),ks=kioskState;
+  var active=kiosk&&!ks.done&&!ks.exit&&!ks.busy&&kHasData();
+  if(!active){if(m)kIdleClose();return;}
+  if(m){
+    kIdleLeft--;
+    var n=document.getElementById('kidlenum');if(n)n.textContent=Math.max(0,kIdleLeft);
+    if(kIdleLeft<=0){kIdleClose();kioskReset();kTouch();}
+    return;
+  }
+  var lim=(kCur().k==='price'?KIDLE.waitPrice:KIDLE.wait)*1000;
+  if(Date.now()-kLastTouch>=lim)kIdleShow();
+},1000);
 
 /* ---------- מצב הקיוסקים: כל קיוסק מדווח כל דקה ---------- */
 function heartbeat(){
