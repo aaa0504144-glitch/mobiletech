@@ -1861,7 +1861,7 @@ document.addEventListener('change',function(e){
 });
 
 /* ---------- הפעלה: Firebase (מסד נתונים + כניסה עם Google) ---------- */
-var APP_VERSION='4.11.2026a';
+var APP_VERSION='4.11.2026b';
 var fb=null,fs=null,authUser=null;
 var kioskLoc='store';try{kioskLoc=localStorage.getItem('mt_kiosk_loc')||'store';}catch(x){}
 var DEV_ID;try{DEV_ID=localStorage.getItem('mt_dev')||('d'+uid());localStorage.setItem('mt_dev',DEV_ID);}catch(x){DEV_ID='d'+uid();}
@@ -2247,6 +2247,15 @@ var backArmed=false;
 function armBack(){if(backArmed)return;backArmed=true;try{history.pushState({mt:3},'');}catch(x){}}
 try{history.replaceState({mt:1},'');history.pushState({mt:2},'');}catch(x){}
 ['click','pointerup','touchend','keydown'].forEach(function(ev){window.addEventListener(ev,armBack,true);});
+// בקיוסק: מסך מלא שמסתיר את כפתורי הניווט של הטאבלט (כדי שלקוחות לא ילחצו עליהם)
+function kioskFullscreen(){
+  if(!kiosk)return;
+  var de=document.documentElement;
+  if(document.fullscreenElement||!de.requestFullscreen)return;
+  try{var p=de.requestFullscreen({navigationUI:'hide'});if(p&&p.catch)p.catch(function(){});}catch(x){}
+}
+['click','touchend'].forEach(function(ev){window.addEventListener(ev,kioskFullscreen,true);});
+setInterval(function(){if(!kiosk&&document.fullscreenElement&&document.exitFullscreen){try{document.exitFullscreen().catch(function(){});}catch(x){}}},1000);
 function onBack(){
   if(kiosk){if(kioskState.exit){kioskState.exit=false;render();}return;}
   if(scan){closeScan();return;}
