@@ -208,6 +208,15 @@ nav.bottom button.plus .ic{background:var(--brand);color:var(--on-brand);width:4
 .login .big{font-size:48px}
 .sel{width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px;color:var(--ink)}
 .acc{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line);direction:ltr}
+.kask{margin-top:16px;padding:10px 12px;border-radius:10px;background:var(--warn-l);color:var(--warn);font-weight:700;font-size:17px;text-align:center}
+.khand{font-size:24px;font-weight:700;color:var(--brand-d);margin:12px 0}
+.kpaid{font-size:18px;margin:8px 0}
+.kline{margin-top:3px}
+.kalerts{display:grid;gap:6px;margin-bottom:8px}
+.kalert{background:var(--bad-l);color:var(--bad);border-radius:10px;padding:9px 12px;font-weight:700}
+.ntlist.dim{opacity:.5}
+.ntcode{direction:ltr;text-align:center;font-size:17px;padding:10px;margin:8px 0;border:1.5px dashed var(--line);border-radius:10px;user-select:all;word-break:break-all}
+.lookchips{margin:0}
 .copy{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 4px}
 button.stat{font:inherit;color:inherit;cursor:pointer}
 .searchrow{display:flex;gap:8px}
@@ -361,6 +370,7 @@ function applyTheme(){
   var st=document.documentElement.style;
   if(S.settings.bg)st.setProperty('--user-bg',S.settings.bg);else st.removeProperty('--user-bg');
   if(S.settings.brand)st.setProperty('--user-brand',S.settings.brand);else st.removeProperty('--user-brand');
+  applyLookExtra(st);
   document.title=storeName();
 }
 
@@ -557,7 +567,7 @@ function viewNew(){
   var f=form,h='';
   if(f.error)h+='<div class="err" role="alert">'+esc(f.error)+'</div>';
   if(f.warrantyOf)h+='<div class="info">🔁 <b>תיקון חוזר באחריות</b> לתיקון #'+esc(f.warrantyTicket||'')+'. המחירים מאופסים (ללא חיוב). אפשר לשנות אם צריך.</div>';
-  if(f.fromWaiting)h+='<div class="info"><b>לקוח #'+esc(f.fromWaiting)+':</b> '+esc(f.name)+' · <span class="num">'+esc(f.phone)+'</span><br>בחר סוג מוצר ותיקון.</div>';
+  if(f.fromWaiting)h+='<div class="info"><b>לקוח #'+esc(f.fromWaiting)+':</b> '+esc(f.name)+' · <span class="num">'+esc(f.phone)+'</span>'+(function(){var w0=S.repairs.filter(function(x){return x.id===f.editingId;})[0];return w0&&w0.kioskPrice?'<br><b>מחיר שנרשם בקיוסק: '+money(w0.kioskPrice)+'</b>':'';})()+'<br>בחר סוג מוצר ותיקון.</div>';
   h+='<div class="card"><label class="f" style="margin-top:0">סוג מוצר</label><div class="tiles">'+
     S.catalog.map(function(c){return '<button class="tile'+(f.catId===c.id?' on':'')+'" data-act="pickcat" data-id="'+esc(c.id)+'">'+esc(c.name)+'</button>';}).join('')+'</div></div>';
   var c=cat(f.catId);
@@ -658,14 +668,14 @@ function waitingCard(r){
   return '<div class="card repair waitcard" data-act="open" data-id="'+esc(r.id)+'" tabindex="0">'+
     '<div class="row between"><b class="nm">'+esc(r.name)+'</b><span class="badge st-waiting">ממתין #'+esc(r.ticket||'')+'</span></div>'+
     '<div class="muted"><span class="num">'+esc(r.phone)+'</span> · נרשם '+(r.origin==='kiosk'?'בטאבלט':r.kioskLoc==='jerusalem'?'בקיוסק ירושלים':'')+' <span class="num">'+fmtDate(r.createdAt)+'</span></div>'+
-    '<div class="items muted">עוד לא נקבע תיקון</div></div>';
+    (r.kioskPrice?'<div class="items"><b>מחיר מהקיוסק: '+money(r.kioskPrice)+'</b> · <span class="muted">עוד לא נקבע תיקון</span></div>':'<div class="items muted">עוד לא נקבע תיקון</div>')+'</div>';
 }
 function waitingDetail(r,tel){
   return '<div class="card"><div class="row between"><b class="display" style="font-size:21px">'+esc(r.name)+'</b><span class="badge st-waiting">ממתין</span></div>'+
     '<div class="ticketbig num">#'+esc(r.ticket||'')+'</div>'+
     '<div class="row between"><span class="num" style="font-size:19px;user-select:all">'+esc(r.phone)+'</span>'+
     '<button class="btn sec sm" data-act="copyphone" data-v="'+esc(r.phone)+'">העתק</button></div>'+
-    '<p class="muted sm">נרשם '+(r.origin==='kiosk'?'בטאבלט ':r.kioskLoc==='jerusalem'?'בקיוסק ירושלים ':'')+'ב-<span class="num">'+fmtDate(r.createdAt)+'</span>. עוד לא נקבע תיקון ומחיר.</p>'+
+    '<p class="muted sm">נרשם '+(r.origin==='kiosk'?'בטאבלט ':r.kioskLoc==='jerusalem'?'בקיוסק ירושלים ':'')+'ב-<span class="num">'+fmtDate(r.createdAt)+'</span>. עוד לא נקבע תיקון ומחיר.</p>'+(r.kioskPrice?'<div class="kpaid">מחיר שנרשם בקיוסק: <b class="num">'+money(r.kioskPrice)+'</b></div>':'')+
     (r.terms&&r.terms.accepted?'<div class="muted sm">✔ אישר את תנאי השירות</div>'+(r.terms.sig?'<img class="sigimg" src="'+esc(r.terms.sig)+'" alt="חתימת הלקוח">':''):'')+'</div>'+
     '<div class="btns"><button class="btn full" data-act="continue" data-id="'+esc(r.id)+'">▶ קביעת תיקון ומחיר</button>'+
     '<button class="btn sec" data-act="label" data-id="'+esc(r.id)+'">🏷 מדבקה להדפסה</button>'+
@@ -690,13 +700,14 @@ function viewSettings(){
       '<button class="btn block" style="margin-top:12px" type="submit">פתיחה</button></form>'+
       (isOwner?'<button class="btn sec sm" style="margin-top:14px" data-act="forgotpin">שכחתי סיסמה</button>':'')+'</div>';
   }
-  var tabs=[['look','מראה'],['prices','מחירון'],['msgs','הודעות ותנאים'],['backup','גיבוי'],['pin','סיסמה']];
+  var tabs=[['look','מראה'],['prices','מחירון'],['msgs','הודעות ותנאים'],['backup','גיבוי'],['notify','🔔 התראות'],['pin','סיסמה']];
   var h='<div class="chips">'+tabs.map(function(t){return '<button class="chip'+(setTab===t[0]?' on':'')+'" data-act="settab" data-v="'+t[0]+'">'+t[1]+'</button>';}).join('')+
     '<button class="chip" data-act="lock">🔒 נעילה</button></div>';
   if(setTab==='look')h+=viewLook();
   else if(setTab==='prices')h+=viewPrices();
   else if(setTab==='backup')h+=viewBackup();
   else if(setTab==='msgs')h+=viewMsgs();
+  else if(setTab==='notify')h+=notifyCard();
   else h+=viewPinChange();
   return h;
 }
@@ -710,7 +721,7 @@ function viewLook(){
     '<div class="card"><div class="h2">צבע ראשי</div><div class="swatches">'+
     BRAND_PRESETS.map(function(c){return '<button class="sw'+(br===c?' on':'')+'" style="background:'+c+'" data-act="setbrand" data-v="'+c+'" aria-label="צבע '+c+'"></button>';}).join('')+
     '<label class="colorpick">צבע אחר<input type="color" id="brandpick" data-bind="brandpick" value="'+esc(br)+'"></label></div></div>'+
-    '<button class="btn sec block" data-act="resettheme">חזרה לצבעים המקוריים</button>'+
+    lookExtraHtml()+'<button class="btn sec block" data-act="resettheme">חזרה למראה המקורי</button>'+
     '<div class="card" style="margin-top:12px"><div class="h2">מצב קיוסק (טאבלט ללקוחות)</div>'+
     '<p class="muted" style="margin-top:0">המסך יציג רק טופס שם וטלפון ללקוחות. כל לקוח מקבל מספר ומופיע אצלך ב"ממתינים". יציאה רק עם סיסמת ההגדרות. המצב נשמר רק במכשיר הזה.</p>'+
     '<div class="btns"><button class="btn" data-act="kioskon" data-v="store">קיוסק חנות (בני ברק)</button><button class="btn" data-act="kioskon" data-v="jerusalem">קיוסק ירושלים</button></div>'+
@@ -1406,7 +1417,15 @@ function drawLabel(r,forPrint){
   x.fillText(r.name,W-pad,H*0.43);
   // טלפון
   x.direction='ltr';x.textAlign='center';x.font='600 '+Math.round(H*0.13)+'px '+font;
-  x.fillText(r.phone,W/2,H*0.6);
+  var lp=r.kioskPrice||(total(r)>0?total(r):0);
+  if(lp){
+    var ptxt=money(lp),pfs=Math.round(H*0.15),phs=Math.round(H*0.13);
+    var need=function(){x.font='700 '+pfs+'px '+font;var a=x.measureText(ptxt).width;x.font='600 '+phs+'px '+font;return a+x.measureText(r.phone).width+W*0.05;};
+    while(need()>W-2*pad&&phs>12){phs-=2;pfs-=2;}
+    x.font='600 '+phs+'px '+font;x.textAlign='left';x.fillText(r.phone,pad,H*0.6);
+    x.font='700 '+pfs+'px '+font;x.textAlign='right';x.fillText(ptxt,W-pad,H*0.6);
+    x.textAlign='center';
+  }else x.fillText(r.phone,W/2,H*0.6);
   // ברקוד
   var code=ean13For(r.ticket||0),bits=ean13Bits(code);
   var quiet=11,mod=Math.floor((W-2*pad)/(bits.length+2*quiet)),bw=bits.length*mod;
@@ -1468,12 +1487,13 @@ function viewKiosk(){
   }else if(ks.done){
     h+='<div class="kcard kdone"><div class="kbig">✔</div><div class="h2">תודה, '+esc(ks.doneName)+'!</div>'+
       '<p>מספר התיקון שלך</p><div class="ticketbig num">#'+esc(ks.doneTicket)+'</div>'+
-      (kioskState.printMsg?'<p class="kprint">🏷 '+esc(kioskState.printMsg)+'</p>':'')+'<p class="muted">מסור את המכשיר לנציג בחנות.</p><button class="btn sec" data-act="kioskagain">לקוח הבא</button></div>';
+      (kioskState.donePrice?'<p class="kpaid">סכום לתשלום: <b class="num">'+money(kioskState.donePrice)+'</b></p>':'')+(kioskState.printMsg?'<p class="kprint">🏷 '+esc(kioskState.printMsg)+'</p>':'')+'<p class="'+(kioskLoc==='jerusalem'?'muted':'khand')+'">'+(kioskLoc==='jerusalem'?'מסור את המכשיר לנציג בחנות.':'👉 נא למסור את המוצר לנציג')+'</p><button class="btn sec" data-act="kioskagain">לקוח הבא</button></div>';
   }else{
-    h+='<div class="kcard"><div class="kstore display">'+esc(storeName())+(kioskLoc==='jerusalem'?' · ירושלים':'')+'</div><p class="ksub">ברוכים הבאים! השאירו שם וטלפון, ונחזור אליכם כשהתיקון מוכן.</p>'+
+    h+='<div class="kcard"><div class="kstore display">'+esc(storeName())+(kioskLoc==='jerusalem'?' · ירושלים':'')+'</div><p class="ksub">'+(kioskLoc==='jerusalem'?'ברוכים הבאים! השאירו שם וטלפון, ונחזור אליכם כשהתיקון מוכן.':'ברוכים הבאים! מלאו שם, טלפון ומחיר. אחרי השליחה מסרו את המוצר לנציג.')+'</p>'+
       '<form id="kioskform" autocomplete="off">'+
       '<label class="f" for="k-name">שם</label><input type="text" id="k-name" class="kin" data-bind="kname" value="'+esc(ks.name)+'" autocomplete="off">'+
       '<label class="f" for="k-phone">טלפון</label><input type="tel" id="k-phone" class="kin num" inputmode="tel" data-bind="kphone" value="'+esc(ks.phone)+'" autocomplete="off">'+
+      (kioskLoc!=='jerusalem'?'<div class="kask">💬 שאלו את הנציג כמה צריך לשלם, וכתבו את הסכום כאן</div><label class="f" for="k-price">מחיר לתשלום (₪)</label><input type="number" id="k-price" class="kin num" inputmode="decimal" min="1" data-bind="kprice" value="'+esc(ks.price||'')+'" autocomplete="off">':'')+
       (setv('kioskTerms')?'<div class="terms">'+esc(setv('terms')).replace(/\n/g,'<br>')+'</div>'+
         '<label class="agree"><input type="checkbox" id="k-agree" data-bind="kagree"'+(ks.agree?' checked':'')+'> קראתי ואני מסכים/ה לתנאים</label>'+
         (setv('requireSig')?'<div class="row between" style="margin-top:10px"><b>חתימה באצבע</b><button class="btn sec sm" type="button" data-act="sigclear">ניקוי</button></div><canvas id="sigpad" class="sigpad" width="600" height="200"></canvas>':''):'')+
@@ -1489,14 +1509,16 @@ function kioskSend(){
   var name=ks.name.trim(),phone=ks.phone.trim();
   if(name.length<2){ks.err='נא לכתוב שם';render();return;}
   if(phone.replace(/\D/g,'').length<9){ks.err='נא לכתוב מספר טלפון מלא';render();return;}
+  if(kioskLoc!=='jerusalem'){var kpv=String(ks.price==null?'':ks.price).trim();if(!(kpv!==''&&Number(kpv)>0&&Number(kpv)<100000)){ks.err='נא לכתוב את המחיר שהנציג אמר';render();var kpe=document.getElementById('k-price');if(kpe)try{kpe.focus();}catch(x){}return;}}
   if(setv('kioskTerms')&&!ks.agree){ks.err='נא לאשר את התנאים';render();return;}
   if(setv('kioskTerms')&&setv('requireSig')&&!ks.sig){ks.err='נא לחתום באצבע במסגרת';render();return;}
   ks.busy=true;ks.err='';render();
   nextTicket().then(function(n){
-    var rec={id:uid(),ticket:n,createdAt:todayStr(),createdTs:Date.now(),status:'waiting',origin:kioskLoc==='jerusalem'?'jerusalem':'kiosk',kioskLoc:kioskLoc,name:name,phone:parsePhone(phone)||phone,catId:null,items:[],device:'',notes:'',completedAt:null,warrantyMonths:0,payments:[]};
+    var rec={id:uid(),ticket:n,createdAt:todayStr(),createdTs:Date.now(),status:'waiting',origin:kioskLoc==='jerusalem'?'jerusalem':'kiosk',kioskLoc:kioskLoc,kioskPrice:(kioskLoc!=='jerusalem'&&Number(ks.price)>0)?Math.round(Number(ks.price)*100)/100:null,name:name,phone:parsePhone(phone)||phone,catId:null,items:[],device:'',notes:'',completedAt:null,warrantyMonths:0,payments:[]};
     if(setv('kioskTerms'))rec.terms={accepted:true,at:new Date().toISOString(),sig:ks.sig||null};
     return writeRepair(rec).then(function(){
-      kioskState={done:true,exit:false,busy:false,name:'',phone:'',err:'',doneName:name,doneTicket:n,printMsg:printer.connected?'המדבקה מודפסת…':'המדבקה לא הודפסה. הנציג ידפיס אותה.'};render();
+      kioskState={done:true,exit:false,busy:false,name:'',phone:'',err:'',doneName:name,doneTicket:n,donePrice:rec.kioskPrice||null,printMsg:printer.connected?'המדבקה מודפסת…':'המדבקה לא הודפסה. הנציג ידפיס אותה.'};render();
+      if(kioskLoc!=='jerusalem')pushNotify('new','🔧 תיקון חדש #'+n,name+(rec.kioskPrice?' · '+money(rec.kioskPrice):'')+' · נרשם בקיוסק');
       if(printer.connected)printLabelFor(rec).then(function(){if(kioskState.done&&kioskState.doneTicket===n){kioskState.printMsg='המדבקה הודפסה. הדביקו אותה על המכשיר.';render();}},function(){if(kioskState.done&&kioskState.doneTicket===n){kioskState.printMsg='ההדפסה נכשלה. הנציג ידפיס את המדבקה.';render();}});
       clearTimeout(kioskTimer);kioskTimer=setTimeout(kioskReset,12000);
     });
@@ -1636,7 +1658,7 @@ document.addEventListener('click',function(e){
       });break;
     case 'setbg':saveSettings({bg:el.getAttribute('data-v')}).catch(function(){});render();break;
     case 'setbrand':saveSettings({brand:el.getAttribute('data-v')}).catch(function(){});render();break;
-    case 'resettheme':saveSettings({bg:null,brand:null}).catch(function(){});render();break;
+    case 'resettheme':saveSettings({bg:null,brand:null,mode:null,font:null,zoom:null,radius:null}).catch(function(){});render();break;
     case 'additem':
       c=cat(el.getAttribute('data-cat'));
       c.items.push({id:uid(),name:'',price:null,checked:false});saveCatalog();render();
@@ -1673,6 +1695,10 @@ document.addEventListener('click',function(e){
       });break;
     case 'signout':firebase.auth().signOut().then(function(){location.reload();});break;
     case 'signin':signIn();break;
+    case 'setlook':var lk={};lk[el.getAttribute('data-k')]=el.getAttribute('data-v')||null;saveSettings(lk).catch(function(){});applyTheme();render();break;
+    case 'ntfyon':saveSettings({ntfyTopic:randTopic(),notifyOn:true}).then(function(){render();},function(){});break;
+    case 'ntfytest':pushNotify('test','🔔 בדיקה מ'+storeName(),'ההתראות עובדות! מעכשיו תקבל כאן הודעות.').then(function(ok){toast(ok?'נשלחה הודעת בדיקה. בדוק את הטלפון.':'השליחה נכשלה. בדוק את החיבור לאינטרנט.');});break;
+    case 'ntfycopy':var tc=(S.settings||{}).ntfyTopic||'';(navigator.clipboard?navigator.clipboard.writeText(tc):Promise.reject()).then(function(){toast('הקוד הועתק');},function(){toast('לא הצלחתי להעתיק. אפשר לסמן ולהעתיק ידנית.');});break;
     case 'accessadd':
       var em=((document.getElementById('acc-new')||{}).value||'').trim().toLowerCase();
       if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){toast('כתוב מייל תקין');break;}
@@ -1771,6 +1797,7 @@ document.addEventListener('input',function(e){
     case 'kname':kioskState.name=el.value;break;
     case 'kagree':kioskState.agree=el.checked;break;
     case 'kphone':kioskState.phone=el.value;break;
+    case 'kprice':kioskState.price=el.value;break;
     case 'name':form.name=el.value;break;
     case 'phone':form.phone=el.value;updateHistory();break;
     case 'internal':form.internal=el.value;break;
@@ -1824,6 +1851,7 @@ document.addEventListener('change',function(e){
     case 'pdpi':printSet('dpi',el.value==='auto'?'auto':Number(el.value));render();break;
     case 'pscale':printSet('scale',Number(el.value));var pv2=document.getElementById('pscale-v');if(pv2)pv2.textContent=el.value+'%';break;
     case 'pdens':printSet('density',Number(el.value));break;
+    case 'nt':var no={};no[el.getAttribute('data-k')]=el.checked;saveSettings(no).catch(function(){});render();break;
     case 'setting':
       var key=el.getAttribute('data-k'),val=el.type==='checkbox'?el.checked:(el.type==='number'?Number(el.value):el.value);
       var patch={};patch[key]=(val===''?null:val);saveSettings(patch).catch(function(){});toast('נשמר');break;
@@ -1833,7 +1861,7 @@ document.addEventListener('change',function(e){
 });
 
 /* ---------- הפעלה: Firebase (מסד נתונים + כניסה עם Google) ---------- */
-var APP_VERSION='3.11.2026h';
+var APP_VERSION='4.11.2026a';
 var fb=null,fs=null,authUser=null;
 var kioskLoc='store';try{kioskLoc=localStorage.getItem('mt_kiosk_loc')||'store';}catch(x){}
 var DEV_ID;try{DEV_ID=localStorage.getItem('mt_dev')||('d'+uid());localStorage.setItem('mt_dev',DEV_ID);}catch(x){DEV_ID='d'+uid();}
@@ -1962,7 +1990,7 @@ function openClient(opts){
       c.on('disconnect',function(){if(printer.client!==c)return;printer.connected=false;heartbeat();kioskPrinterUi();setTimeout(autoConnectPrinter,5000);});
     }
     if(typeof c.on==='function'){
-      c.on('heartbeat',function(e){var b=e&&e.data&&e.data.batteryPercents;if(b!=null&&printer.client===c){var ch=printer.battery!==b;printer.battery=b;if(ch)batteryChanged();}});
+      c.on('heartbeat',function(e){var b=e&&e.data&&e.data.batteryPercents;if(b!=null&&printer.client===c){var ch=printer.battery!==b;printer.battery=b;if(ch){batteryChanged();checkAlerts();}}});
       c.on('printerinfofetched',function(e){var b=e&&e.info&&e.info.batteryPercents;if(b!=null&&printer.client===c)printer.battery=b;});
     }
     return c.connect(opts).then(function(info){
@@ -2067,19 +2095,119 @@ function printerCard(){
     '<select id="pdens" data-bind="pdens" class="sel">'+[1,2,3,4,5].map(function(d){return '<option value="'+d+'"'+(Number(pset.density)===d?' selected':'')+'>'+d+(d===3?' (רגיל)':'')+'</option>';}).join('')+'</select></div>';
 }
 
+/* ---------- סוללת הטאבלט ---------- */
+var TAB_LOW=20,PRN_LOW=25;
+var tab={level:null,charging:null},unplugTimer=null;
+function initBattery(){
+  if(!navigator.getBattery)return;
+  navigator.getBattery().then(function(b){
+    var upd=function(){
+      var lv=Math.round(b.level*100),chg=!!b.charging;
+      var changed=tab.level===null||Math.abs(lv-tab.level)>=5||chg!==tab.charging||(lv<=TAB_LOW&&lv!==tab.level);
+      var unplugged=tab.charging===true&&!chg;
+      tab.level=lv;tab.charging=chg;
+      if(changed)heartbeat();
+      if(unplugged){clearTimeout(unplugTimer);unplugTimer=setTimeout(function(){if(kiosk&&tab.charging===false){var f=nflags();if(!f.unplug){f.unplug=1;saveNflags(f);pushNotify('tab','🔌 הטאבלט נותק מהחשמל','הטאבלט של הקיוסק לא בטעינה (סוללה '+tab.level+'%). לחבר את המטען.');}}},60000);}
+      if(chg){var f=nflags();if(f.unplug){f.unplug=0;saveNflags(f);}}
+      checkAlerts();
+    };
+    upd();b.addEventListener('levelchange',upd);b.addEventListener('chargingchange',upd);
+  }).catch(function(){});
+}
+initBattery();
+
+/* ---------- התראות לטלפון (ntfy) ---------- */
+function nflags(){try{return JSON.parse(localStorage.getItem('mt_nflags')||'{}')||{};}catch(x){return {};}}
+function saveNflags(f){try{localStorage.setItem('mt_nflags',JSON.stringify(f));}catch(x){}}
+function pushNotify(kind,title,msg){
+  var se=S.settings||{};
+  if(!se.ntfyTopic)return Promise.resolve(false);
+  if(kind!=='test'){
+    if(se.notifyOn===false)return Promise.resolve(false);
+    var key={'new':'notifyNew',tab:'notifyTab',prn:'notifyPrn'}[kind];
+    if(key&&se[key]===false)return Promise.resolve(false);
+  }
+  var body={topic:se.ntfyTopic,title:title,message:msg,priority:kind==='new'?4:4,tags:[kind==='new'?'wrench':kind==='test'?'bell':'battery'],click:location.origin+location.pathname};
+  try{return fetch('https://ntfy.sh/',{method:'POST',body:JSON.stringify(body)}).then(function(res){return res.ok;}).catch(function(){return false;});}catch(x){return Promise.resolve(false);}
+}
+function checkAlerts(){
+  if(!kiosk)return;
+  var f=nflags(),ch=false;
+  if(tab.level!=null){
+    if(tab.level<=TAB_LOW&&!tab.charging){if(!f.tab){f.tab=1;ch=true;pushNotify('tab','🔋 סוללת הטאבלט נמוכה','הטאבלט של הקיוסק ב-'+tab.level+'%. לחבר לחשמל!');}}
+    else if(f.tab&&(tab.level>=TAB_LOW+10||tab.charging)){f.tab=0;ch=true;}
+  }
+  if(printer.connected&&printer.battery!=null){
+    var pb=Math.round(printer.battery);
+    if(pb<=PRN_LOW){if(!f.prn){f.prn=1;ch=true;pushNotify('prn','🖨 סוללת המדפסת נמוכה','המדפסת של הקיוסק ב-'+pb+'%. להטעין את המדפסת.');}}
+    else if(f.prn&&pb>=PRN_LOW+10){f.prn=0;ch=true;}
+  }
+  if(ch)saveNflags(f);
+}
+function randTopic(){var a=new Uint8Array(12);try{crypto.getRandomValues(a);}catch(x){for(var i=0;i<12;i++)a[i]=Math.floor(Math.random()*256);}return 'mobiletech-'+Array.prototype.map.call(a,function(b){return ('0'+b.toString(36)).slice(-2);}).join('');}
+function notifyCard(){
+  var se=S.settings||{},t=se.ntfyTopic;
+  var h='<div class="card"><div class="h2">התראות לטלפון</div>';
+  if(!t)return h+'<p class="muted" style="margin-top:0">כשנכנס תיקון חדש בקיוסק, או כשהסוללה של הטאבלט או של המדפסת נמוכה, תגיע הודעה לטלפון, גם כשהאתר סגור.</p><button class="btn block" data-act="ntfyon">🔔 הפעלת התראות</button></div>';
+  var on=se.notifyOn!==false;
+  h+='<label class="agree"><input type="checkbox" data-bind="nt" data-k="notifyOn"'+(on?' checked':'')+'> <b>התראות פעילות</b></label>';
+  h+='<div class="ntlist'+(on?'':' dim')+'">'+[['notifyNew','🔧 נכנס תיקון חדש בקיוסק'],['notifyTab','📱 הטאבלט: סוללה נמוכה או נותק מהחשמל'],['notifyPrn','🖨 המדפסת: סוללה נמוכה']].map(function(o){
+    return '<label class="agree"><input type="checkbox" data-bind="nt" data-k="'+o[0]+'"'+(se[o[0]]!==false?' checked':'')+(on?'':' disabled')+'> '+o[1]+'</label>';}).join('')+'</div>';
+  h+='<button class="btn sec block" data-act="ntfytest" style="margin-top:12px">שליחת הודעת בדיקה</button></div>';
+  h+='<div class="card"><div class="h2">חיבור טלפון להתראות (פעם אחת בכל טלפון)</div><ol class="steps">'+
+    '<li>בטלפון, בחנות Play, להתקין את האפליקציה <b>ntfy</b>.</li>'+
+    '<li>בטלפון, לפתוח את האתר ← הגדרות ← התראות, וללחוץ:<div style="margin:8px 0"><a class="btn" href="ntfy://ntfy.sh/'+esc(t)+'?display='+encodeURIComponent('מובייל טק')+'">📲 חיבור הטלפון הזה להתראות</a></div></li>'+
+    '<li>אם הכפתור לא עובד: באפליקציה ntfy ללחוץ על <b>+</b> ולהדביק את הקוד:<div class="ntcode num">'+esc(t)+'</div><button class="btn sec sm" data-act="ntfycopy">העתקת הקוד</button></li>'+
+    '<li>ללחוץ למעלה על "שליחת הודעת בדיקה" ולבדוק שהגיעה הודעה.</li></ol>'+
+    '<p class="muted sm">כל אחד יכול לחבר את הטלפון שלו. מי שלא רוצה הודעות מוחק את המינוי באפליקציה אצלו. בהודעות לא נשלח מספר הטלפון של הלקוח.</p></div>';
+  return h;
+}
+
+/* ---------- מראה: מצב תצוגה, גופן, גודל טקסט, פינות ---------- */
+var FONTS=[['','אסיסטנט (רגיל)','Assistant:wght@400;600;700'],['Rubik','רוביק','Rubik:wght@400;500;700'],['Heebo','היבו','Heebo:wght@400;600;700'],['Varela Round','וורלה מעוגל','Varela+Round'],['Alef','אלף','Alef:wght@400;700'],['Secular One','סקולר מודגש','Secular+One'],['Frank Ruhl Libre','פרנק רוהל','Frank+Ruhl+Libre:wght@400;700'],['Noto Sans Hebrew','נוטו','Noto+Sans+Hebrew:wght@400;600;700']];
+var LOOK_OPTS={
+  mode:[['','אוטומטי'],['light','☀️ בהיר'],['dark','🌙 כהה']],
+  zoom:[['0.9','קטן'],['','רגיל'],['1.12','גדול'],['1.25','גדול מאוד']],
+  radius:[['4px','מרובעות'],['','רגילות'],['22px','מעוגלות']]
+};
+var loadedFonts={};
+function loadFont(name){
+  var f=FONTS.filter(function(x){return x[0]===name;})[0];if(!f||!f[0]||loadedFonts[name])return;
+  loadedFonts[name]=1;var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family='+f[2]+'&display=swap';document.head.appendChild(l);
+}
+function applyLookExtra(st){
+  var se=S.settings||{},de=document.documentElement;
+  if(se.mode==='light'||se.mode==='dark')de.setAttribute('data-theme',se.mode);else de.removeAttribute('data-theme');
+  if(se.font){loadFont(se.font);var ff='"'+se.font+'","Assistant",system-ui,Arial,sans-serif';st.setProperty('--f-body',ff);st.setProperty('--f-display',ff);}
+  else{st.removeProperty('--f-body');st.removeProperty('--f-display');}
+  st.zoom=se.zoom||'';
+  if(se.radius)st.setProperty('--radius',se.radius);else st.removeProperty('--radius');
+}
+function lookChips(k,list){
+  var cur=String(S.settings[k]||'');
+  return '<div class="chips lookchips">'+list.map(function(o){return '<button class="chip'+(cur===o[0]?' on':'')+'" data-act="setlook" data-k="'+k+'" data-v="'+esc(o[0])+'"'+(k==='font'?' style="font-family:'+(o[0]?'\''+o[0]+'\',':'')+'Assistant,sans-serif"':'')+'>'+o[1]+'</button>';}).join('')+'</div>';
+}
+function lookExtraHtml(){
+  FONTS.forEach(function(f){loadFont(f[0]);});
+  return '<div class="card"><div class="h2">מצב תצוגה</div>'+lookChips('mode',LOOK_OPTS.mode)+'<p class="muted sm" style="margin-bottom:0">"אוטומטי" עובר לכהה כשהמכשיר במצב כהה.</p></div>'+
+    '<div class="card"><div class="h2">גופן (סוג האותיות)</div>'+lookChips('font',FONTS)+'</div>'+
+    '<div class="card"><div class="h2">גודל הטקסט</div>'+lookChips('zoom',LOOK_OPTS.zoom)+'</div>'+
+    '<div class="card"><div class="h2">פינות הכרטיסים</div>'+lookChips('radius',LOOK_OPTS.radius)+'</div>';
+}
+
 /* ---------- מצב הקיוסקים: כל קיוסק מדווח כל דקה ---------- */
 function heartbeat(){
   if(!kiosk||!fs||S.auth!=='ok')return;
-  var body={kind:'kiosk',loc:kioskLoc,printer:!!printer.connected,printerName:printer.name||'',printerBattery:(printer.connected&&printer.battery!=null)?Number(printer.battery):null,ts:Date.now(),email:currentEmail()};
+  var body={kind:'kiosk',loc:kioskLoc,printer:!!printer.connected,printerName:printer.name||'',printerBattery:(printer.connected&&printer.battery!=null)?Number(printer.battery):null,tabletBattery:tab.level,tabletCharging:tab.charging,ts:Date.now(),email:currentEmail()};
   try{body.srv=firebase.firestore.FieldValue.serverTimestamp();}catch(x){}
   fs.collection('devices').doc(DEV_ID).set(body).catch(function(){});
 }
 function deviceOff(){if(fs)fs.collection('devices').doc(DEV_ID).delete().catch(function(){});}
-setInterval(heartbeat,60000);
+setInterval(function(){heartbeat();checkAlerts();},60000);
 function hm(t){var d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes());}
 function kioskStatusHtml(only){
   var locs=only?[only]:['store'],names={store:'קיוסק בני ברק',jerusalem:'קיוסק ירושלים'};
-  var h='<div class="kst">';
+  var h='<div class="kst">',al=[];
   locs.forEach(function(l){
     var ds=S.devices.filter(function(d){return d.loc===l;}).sort(function(a,b){return (b.ts||0)-(a.ts||0);}),d=ds[0];
     h+='<div class="ki"><b>'+names[l]+'</b>';
@@ -2087,12 +2215,19 @@ function kioskStatusHtml(only){
     else{
       var fresh=Date.now()-(d.ts||0)<180000;
       h+=fresh?'<span class="on">● מחובר ומסונכרן</span>':'<span class="off">● לא מחובר</span> <span class="muted">(נראה לאחרונה '+(daysSince(new Date(d.ts).toISOString().slice(0,10))?fmtDate(new Date(d.ts)):'')+' '+hm(d.ts)+')</span>';
-      h+=' · '+(fresh&&d.printer?'<span class="on">🖨 מדפסת מחוברת</span>':'<span class="off">🖨 מדפסת לא מחוברת</span>');
-      if(fresh&&d.printer&&d.printerBattery!=null){var bp=Math.max(0,Math.min(100,Math.round(d.printerBattery)));h+=' · <span class="'+(bp<=20?'off':'on')+'">🔋 סוללה '+bp+'%'+(bp<=20?' (להטעין!)':'')+'</span>';}
+      if(fresh&&d.tabletBattery!=null){
+        var tb=Math.max(0,Math.min(100,Math.round(d.tabletBattery))),tlow=tb<=20,tun=d.tabletCharging===false;
+        h+='<div class="kline"><span class="'+((tlow||tun)?'off':'on')+'">📱 טאבלט: סוללה '+tb+'%'+(d.tabletCharging?' ⚡ בטעינה':tun?' · לא בטעינה!':'')+'</span></div>';
+        if(tun)al.push('🔌 הטאבלט של '+names[l]+' לא מחובר לחשמל'+(tlow?' והסוללה נמוכה ('+tb+'%)':'')+'. לחבר את המטען!');
+        else if(tlow)al.push('🔋 סוללת הטאבלט של '+names[l]+' נמוכה ('+tb+'%)');
+      }
+      h+='<div class="kline">'+(fresh&&d.printer?'<span class="on">🖨 מדפסת מחוברת</span>':'<span class="off">🖨 מדפסת לא מחוברת</span>');
+      if(fresh&&d.printer&&d.printerBattery!=null){var bp=Math.max(0,Math.min(100,Math.round(d.printerBattery)));h+=' · <span class="'+(bp<=PRN_LOW?'off':'on')+'">🔋 סוללה '+bp+'%'+(bp<=PRN_LOW?' (להטעין!)':'')+'</span>';if(bp<=PRN_LOW)al.push('🖨 סוללת המדפסת של '+names[l]+' נמוכה ('+bp+'%). להטעין את המדפסת');}
+      h+='</div>';
     }
     h+='</div>';
   });
-  return h+'</div>';
+  return (al.length?'<div class="kalerts">'+al.map(function(a){return '<div class="kalert">⚠️ '+esc(a)+'</div>';}).join('')+'</div>':'')+h+'</div>';
 }
 setInterval(function(){if(!kiosk&&S.auth==='ok'&&(view.name==='list'||view.name==='jlm'))softRender();},30000);
 
@@ -2152,7 +2287,7 @@ else{
     var go3=function(){
       subscribe();
       fs.collection('devices').onSnapshot(function(q){
-        S.devices=q.docs.map(function(d){var x=d.data()||{};return {id:d.id,loc:x.loc,printer:!!x.printer,printerBattery:(x.printerBattery==null?null:x.printerBattery),ts:(x.srv&&x.srv.toMillis)?x.srv.toMillis():x.ts};});
+        S.devices=q.docs.map(function(d){var x=d.data()||{};return {id:d.id,loc:x.loc,printer:!!x.printer,printerBattery:(x.printerBattery==null?null:x.printerBattery),tabletBattery:(x.tabletBattery==null?null:x.tabletBattery),tabletCharging:(x.tabletCharging==null?null:!!x.tabletCharging),ts:(x.srv&&x.srv.toMillis)?x.srv.toMillis():x.ts};});
         if(!kiosk&&(view.name==='list'||view.name==='jlm'))softRender();
       },function(){});
       setTimeout(heartbeat,1500);
