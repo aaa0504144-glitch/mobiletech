@@ -217,6 +217,35 @@ nav.bottom button.plus .ic{background:var(--brand);color:var(--on-brand);width:4
 .ntlist.dim{opacity:.5}
 .ntcode{direction:ltr;text-align:center;font-size:17px;padding:10px;margin:8px 0;border:1.5px dashed var(--line);border-radius:10px;user-select:all;word-break:break-all}
 .lookchips{margin:0}
+.kwiz{display:grid;grid-template-columns:1fr;gap:18px;padding:22px}
+@media (orientation:landscape) and (min-width:700px){.kwiz{grid-template-columns:minmax(300px,0.9fr) 1.25fr;align-items:center;gap:26px}}
+.kwiz .kstore{font-size:30px}
+.kwiz .ksub{font-size:17px;margin:4px 0 8px}
+.kstep{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:15px;margin:6px 0}
+.kstep span{width:26px;height:6px;border-radius:3px;background:var(--line)}
+.kstep span.on{background:var(--brand)}
+.kstep span.done{background:color-mix(in srgb,var(--brand) 45%,var(--card))}
+.kstep b{margin-inline-start:6px;font-weight:600}
+.kq{font-size:28px;font-weight:700;text-align:center;margin:6px 0 10px;font-family:var(--f-display)}
+.kfield{min-height:66px;border:2px solid var(--brand);border-radius:14px;padding:12px 16px;font-size:30px;font-weight:700;background:var(--card);display:flex;align-items:center;gap:2px;overflow:hidden;white-space:nowrap}
+.kfield.num{direction:ltr;justify-content:flex-start;font-variant-numeric:tabular-nums;letter-spacing:1px}
+.kph{color:var(--muted);font-weight:400;font-size:22px}
+.kcaret{display:inline-block;width:3px;height:34px;background:var(--brand);animation:kblink 1s steps(1) infinite}
+@keyframes kblink{50%{opacity:0}}
+.kerr{margin-top:10px;font-size:18px}
+.knav{display:flex;gap:10px;margin-top:16px}
+.knav .btn{margin-top:0;flex:1;font-size:22px;padding:16px}
+.knav .kback{flex:0 0 34%}
+.kbd{display:flex;flex-direction:column;gap:8px}
+.krow{display:flex;gap:6px;justify-content:center;direction:ltr}
+.kk:focus{outline:none}
+.kk{flex:1;min-width:0;min-height:60px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font-size:26px;font-weight:600;box-shadow:0 2px 0 var(--line);font-family:var(--f-display);touch-action:manipulation;user-select:none}
+.kk:active{background:var(--brand-l);transform:translateY(1px)}
+.kk.kfn{flex:1.4;font-size:18px;background:var(--soft)}
+.kk.kspace{flex:4;font-size:18px}
+.kpad{direction:ltr;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:440px;margin:auto;width:100%}
+.kpad .kk{min-height:72px;font-size:32px}
+.kpad .kk.kfn{font-size:20px}
 .copy{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 4px}
 button.stat{font:inherit;color:inherit;cursor:pointer}
 .searchrow{display:flex;gap:8px}
@@ -229,7 +258,8 @@ button.stat{font:inherit;color:inherit;cursor:pointer}
 .steps{margin:12px 0 0;padding-inline-start:20px;color:var(--muted)}
 body.kiosk{padding:0}
 body.kiosk nav.bottom,body.kiosk .top,body.kiosk #sticky{display:none}
-body.kiosk main{max-width:640px;padding-block:0}
+body.kiosk main{max-width:1240px;padding-block:0}
+body.kiosk .kcard:not(.kwiz){max-width:640px;margin-inline:auto}
 .kwrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding-block:24px}
 .kcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:26px;width:100%;box-shadow:var(--shadow)}
 .kstore{font-size:34px;font-weight:700;color:var(--brand-d);text-align:center}
@@ -1488,6 +1518,7 @@ function viewKiosk(){
     h+='<div class="kcard kdone"><div class="kbig">✔</div><div class="h2">תודה, '+esc(ks.doneName)+'!</div>'+
       '<p>מספר התיקון שלך</p><div class="ticketbig num">#'+esc(ks.doneTicket)+'</div>'+
       (kioskState.donePrice?'<p class="kpaid">סכום לתשלום: <b class="num">'+money(kioskState.donePrice)+'</b></p>':'')+(kioskState.printMsg?'<p class="kprint">🏷 '+esc(kioskState.printMsg)+'</p>':'')+'<p class="'+(kioskLoc==='jerusalem'?'muted':'khand')+'">'+(kioskLoc==='jerusalem'?'מסור את המכשיר לנציג בחנות.':'👉 נא למסור את המוצר לנציג')+'</p><button class="btn sec" data-act="kioskagain">לקוח הבא</button></div>';
+  }else if(true){h+=kioskWizardHtml();
   }else{
     h+='<div class="kcard"><div class="kstore display">'+esc(storeName())+(kioskLoc==='jerusalem'?' · ירושלים':'')+'</div><p class="ksub">'+(kioskLoc==='jerusalem'?'ברוכים הבאים! השאירו שם וטלפון, ונחזור אליכם כשהתיקון מוכן.':'ברוכים הבאים! מלאו שם, טלפון ומחיר. אחרי השליחה מסרו את המוצר לנציג.')+'</p>'+
       '<form id="kioskform" autocomplete="off">'+
@@ -1861,7 +1892,7 @@ document.addEventListener('change',function(e){
 });
 
 /* ---------- הפעלה: Firebase (מסד נתונים + כניסה עם Google) ---------- */
-var APP_VERSION='4.11.2026b';
+var APP_VERSION='4.11.2026c';
 var fb=null,fs=null,authUser=null;
 var kioskLoc='store';try{kioskLoc=localStorage.getItem('mt_kiosk_loc')||'store';}catch(x){}
 var DEV_ID;try{DEV_ID=localStorage.getItem('mt_dev')||('d'+uid());localStorage.setItem('mt_dev',DEV_ID);}catch(x){DEV_ID='d'+uid();}
@@ -2194,6 +2225,100 @@ function lookExtraHtml(){
     '<div class="card"><div class="h2">גודל הטקסט</div>'+lookChips('zoom',LOOK_OPTS.zoom)+'</div>'+
     '<div class="card"><div class="h2">פינות הכרטיסים</div>'+lookChips('radius',LOOK_OPTS.radius)+'</div>';
 }
+
+/* ---------- קיוסק: שלב אחרי שלב עם מקלדת משלנו ---------- */
+var KSTEP={
+  name:{t:'מה השם שלך?',kb:'he',max:30},
+  phone:{t:'מה מספר הטלפון שלך?',kb:'num',max:13},
+  price:{t:'כמה צריך לשלם?',kb:'num',max:6,ask:'💬 שאלו את הנציג כמה צריך לשלם, וכתבו את הסכום'}
+};
+var KB={
+  he:[["'",'ק','ר','א','ט','ו','ן','ם','פ'],['ש','ד','ג','כ','ע','י','ח','ל','ך','ף'],['ז','ס','ב','ה','נ','מ','צ','ת','ץ','-']],
+  en:[['q','w','e','r','t','y','u','i','o','p'],['a','s','d','f','g','h','j','k','l'],['z','x','c','v','b','n','m','-',"'"]]
+};
+function kSteps(){return kioskLoc==='jerusalem'?['name','phone']:['name','phone','price'];}
+function kCur(){var st=kSteps(),i=Math.max(0,Math.min(kioskState.step||0,st.length-1));return {i:i,k:st[i],n:st.length,last:i===st.length-1};}
+function kfmt(k,v){
+  if(!v)return '<span class="kph">'+(k==='name'?'הקלידו כאן…':k==='phone'?'05X-XXXXXXX':'₪')+'</span>';
+  if(k==='price')return '₪'+esc(v);
+  return esc(v);
+}
+function kbHtml(type){
+  var key=function(v,lbl,cls){return '<button type="button" class="kk'+(cls?' '+cls:'')+'" data-kk="'+esc(v)+'">'+lbl+'</button>';};
+  if(type==='num'){
+    var h='<div class="kpad">';
+    ['1','2','3','4','5','6','7','8','9'].forEach(function(d){h+=key(d,d);});
+    h+=key('BS','⌫ מחיקה','kfn')+key('0','0')+'<span></span>';
+    return h+'</div>';
+  }
+  var rows=KB[type]||KB.he,h2='<div class="kbd">';
+  rows.forEach(function(row){h2+='<div class="krow">'+row.map(function(c){return key(c,esc(c));}).join('')+'</div>';});
+  h2+='<div class="krow">'+key('LANG',type==='en'?'עברית':'English','kfn')+key('SP','רווח','kspace')+key('BS','⌫ מחיקה','kfn')+'</div>';
+  return h2+'</div>';
+}
+function kioskWizardHtml(){
+  var ks=kioskState,c=kCur(),cf=KSTEP[c.k],v=String(ks[c.k]||'');
+  return '<div class="kcard kwiz"><div class="kwl">'+
+    '<div class="kstore display">'+esc(storeName())+(kioskLoc==='jerusalem'?' · ירושלים':'')+'</div>'+
+    (c.i===0?'<p class="ksub">'+(kioskLoc==='jerusalem'?'ברוכים הבאים! השאירו שם וטלפון, ונחזור אליכם כשהתיקון מוכן.':'ברוכים הבאים! מלאו שם, טלפון ומחיר. אחרי השליחה מסרו את המוצר לנציג.')+'</p>':'')+
+    '<div class="kstep">'+kSteps().map(function(s,j){return '<span class="'+(j<c.i?'done':j===c.i?'on':'')+'"></span>';}).join('')+' <b>שלב '+(c.i+1)+' מתוך '+c.n+'</b></div>'+
+    '<div class="kq">'+cf.t+'</div>'+(cf.ask?'<div class="kask">'+cf.ask+'</div>':'')+
+    '<div class="kfield'+(c.k!=='name'?' num':'')+'" id="kfield">'+kfmt(c.k,v)+'<span class="kcaret"></span></div>'+
+    (ks.err?'<div class="err kerr">'+esc(ks.err)+'</div>':'')+
+    '<div class="knav">'+(c.i>0?'<button type="button" class="btn sec kback" data-kact="back">→ אחורה</button>':'')+
+    '<button type="button" class="btn kgo knext" data-kact="next"'+(ks.busy?' disabled':'')+'>'+(ks.busy?'שולח…':c.last?'שליחה ✔':'המשך ←')+'</button></div></div>'+
+    '<div class="kwr">'+kbHtml(cf.kb==='he'?(ks.kbLang==='en'?'en':'he'):'num')+'</div></div>';
+}
+function kValid(k,v){
+  v=String(v||'').trim();
+  if(k==='name'&&v.length<2)return 'נא לכתוב שם';
+  if(k==='phone'&&v.replace(/\D/g,'').length<9)return 'נא לכתוב מספר טלפון מלא';
+  if(k==='price'&&!(Number(v)>0))return 'נא לכתוב את המחיר שהנציג אמר';
+  return '';
+}
+function kKey(key){
+  var ks=kioskState,c=kCur(),cf=KSTEP[c.k],v=String(ks[c.k]||'');
+  if(key==='LANG'){ks.kbLang=ks.kbLang==='en'?'he':'en';render();return;}
+  if(key==='BS')v=v.slice(0,-1);
+  else if(key==='SP'){if(v&&!/ $/.test(v))v+=' ';}
+  else{
+    if(v.length>=cf.max)return;
+    if(cf.kb==='num'&&!/^\d$/.test(key))return;
+    if(c.k==='price'&&v===''&&key==='0')return;
+    if(c.k==='phone'&&v.length===3&&v.indexOf('-')<0&&/^0[5-9]/.test(v))v+='-';
+    v+=key;
+  }
+  if(c.k==='phone'&&/-$/.test(v)&&key==='BS')v=v.slice(0,-1);
+  ks[c.k]=v;
+  if(ks.err){ks.err='';render();return;}
+  var f=document.getElementById('kfield');if(f)f.innerHTML=kfmt(c.k,v)+'<span class="kcaret"></span>';
+}
+function kNext(){
+  var ks=kioskState,c=kCur(),e=kValid(c.k,ks[c.k]);
+  if(e){ks.err=e;render();return;}
+  ks.err='';
+  if(c.last){if(ks.phone)ks.phone=String(ks.phone);kioskSend();return;}
+  ks.step=c.i+1;render();
+}
+function kBack(){var ks=kioskState,c=kCur();ks.err='';ks.step=Math.max(0,c.i-1);render();}
+document.addEventListener('click',function(e){
+  if(!kiosk)return;
+  var b=e.target.closest&&e.target.closest('[data-kk],[data-kact]');if(!b)return;
+  var ks=kioskState;if(ks.busy||ks.done||ks.exit)return;
+  e.preventDefault();
+  if(b.hasAttribute('data-kk'))kKey(b.getAttribute('data-kk'));
+  else if(b.getAttribute('data-kact')==='back')kBack();
+  else kNext();
+});
+// גם מקלדת אמיתית עובדת (למשל במחשב)
+document.addEventListener('keydown',function(e){
+  if(!kiosk)return;var ks=kioskState;if(ks.busy||ks.done||ks.exit)return;
+  var t=e.target;if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;
+  if(e.key==='Enter'){e.preventDefault();kNext();}
+  else if(e.key==='Backspace'){e.preventDefault();kKey('BS');}
+  else if(e.key===' '){e.preventDefault();kKey('SP');}
+  else if(e.key&&e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();kKey(e.key);}
+});
 
 /* ---------- מצב הקיוסקים: כל קיוסק מדווח כל דקה ---------- */
 function heartbeat(){
