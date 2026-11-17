@@ -1552,7 +1552,7 @@ function viewKiosk(){
       (kioskState.donePrice?'<p class="kpaid">סכום לתשלום: <b class="num">'+money(kioskState.donePrice)+'</b></p>':'')+(kioskState.printMsg?'<p class="kprint">🏷 '+esc(kioskState.printMsg)+'</p>':'')+'<p class="'+(kioskLoc==='jerusalem'?'muted':'khand')+'">'+(kioskLoc==='jerusalem'?'מסור את המכשיר לנציג בחנות.':'👉 נא למסור את המוצר לנציג')+'</p><button class="btn sec" data-act="kioskagain">לקוח הבא</button></div>';
   }else if(true){h+=kioskWizardHtml();
   }else{
-    h+='<div class="kcard"><div class="kstore display">'+esc(storeName())+(kioskLoc==='jerusalem'?' · ירושלים':'')+'</div><p class="ksub">'+(kioskLoc==='jerusalem'?'ברוכים הבאים! השאירו שם וטלפון, ונחזור אליכם כשהתיקון מוכן.':'ברוכים הבאים! מלאו שם, טלפון ומחיר. אחרי השליחה מסרו את המוצר לנציג.')+'</p>'+
+    h+='<div class="kcard"><div class="kstore display">'+esc(storeName())+(kioskLoc==='jerusalem'?' · ירושלים':'')+'</div><p class="ksub">'+(kioskLoc==='jerusalem'?'ברוכים הבאים! השאירו שם וטלפון, ונחזור אליכם כשהתיקון מוכן.':(kPriceOn()?'ברוכים הבאים! מלאו שם, טלפון ומחיר. אחרי השליחה מסרו את המוצר לנציג.':'ברוכים הבאים! מלאו שם וטלפון. אחרי השליחה מסרו את המוצר לנציג.'))+'</p>'+
       '<form id="kioskform" autocomplete="off">'+
       '<label class="f" for="k-name">שם</label><input type="text" id="k-name" class="kin" data-bind="kname" value="'+esc(ks.name)+'" autocomplete="off">'+
       '<label class="f" for="k-phone">טלפון</label><input type="tel" id="k-phone" class="kin num" inputmode="tel" data-bind="kphone" value="'+esc(ks.phone)+'" autocomplete="off">'+
@@ -1572,12 +1572,12 @@ function kioskSend(){
   var name=ks.name.trim(),phone=ks.phone.trim();
   if(name.length<2){ks.err='נא לכתוב שם';render();return;}
   if(phone.replace(/\D/g,'').length<9){ks.err='נא לכתוב מספר טלפון מלא';render();return;}
-  if(kioskLoc!=='jerusalem'){var kpv=String(ks.price==null?'':ks.price).trim();if(!(kpv!==''&&Number(kpv)>0&&Number(kpv)<100000)){ks.err='נא לכתוב את המחיר שהנציג אמר';render();var kpe=document.getElementById('k-price');if(kpe)try{kpe.focus();}catch(x){}return;}}
+  if(kioskLoc!=='jerusalem'&&kPriceOn()){var kpv=String(ks.price==null?'':ks.price).trim();if(!(kpv!==''&&Number(kpv)>0&&Number(kpv)<100000)){ks.err='נא לכתוב את המחיר שהנציג אמר';render();var kpe=document.getElementById('k-price');if(kpe)try{kpe.focus();}catch(x){}return;}}
   if(setv('kioskTerms')&&!ks.agree){ks.err='נא לאשר את התנאים';render();return;}
   if(setv('kioskTerms')&&setv('requireSig')&&!ks.sig){ks.err='נא לחתום באצבע במסגרת';render();return;}
   ks.busy=true;ks.err='';render();
   nextTicket().then(function(n){
-    var rec={id:uid(),ticket:n,createdAt:todayStr(),createdTs:Date.now(),status:'waiting',origin:kioskLoc==='jerusalem'?'jerusalem':'kiosk',kioskLoc:kioskLoc,kioskPrice:(kioskLoc!=='jerusalem'&&Number(ks.price)>0)?Math.round(Number(ks.price)*100)/100:null,name:name,phone:parsePhone(phone)||phone,catId:null,items:[],device:'',notes:'',completedAt:null,warrantyMonths:0,payments:[]};
+    var rec={id:uid(),ticket:n,createdAt:todayStr(),createdTs:Date.now(),status:'waiting',origin:kioskLoc==='jerusalem'?'jerusalem':'kiosk',kioskLoc:kioskLoc,kioskPrice:(kioskLoc!=='jerusalem'&&kPriceOn()&&Number(ks.price)>0)?Math.round(Number(ks.price)*100)/100:null,name:name,phone:parsePhone(phone)||phone,catId:null,items:[],device:'',notes:'',completedAt:null,warrantyMonths:0,payments:[]};
     if(setv('kioskTerms'))rec.terms={accepted:true,at:new Date().toISOString(),sig:ks.sig||null};
     return writeRepair(rec).then(function(){
       kioskState={done:true,exit:false,busy:false,name:'',phone:'',err:'',doneName:name,doneTicket:n,donePrice:rec.kioskPrice||null,printMsg:printer.connected?'המדבקה מודפסת…':'המדבקה לא הודפסה. הנציג ידפיס אותה.'};render();
@@ -1950,7 +1950,7 @@ document.addEventListener('change',function(e){
 });
 
 /* ---------- הפעלה: Firebase (מסד נתונים + כניסה עם Google) ---------- */
-var APP_VERSION='5.11.2026a';
+var APP_VERSION='17.11.2026a';
 var fb=null,fs=null,authUser=null;
 var kioskLoc='store';try{kioskLoc=localStorage.getItem('mt_kiosk_loc')||'store';}catch(x){}
 var DEV_ID;try{DEV_ID=localStorage.getItem('mt_dev')||('d'+uid());localStorage.setItem('mt_dev',DEV_ID);}catch(x){DEV_ID='d'+uid();}
@@ -2294,7 +2294,7 @@ var KB={
   he:[["'",'ק','ר','א','ט','ו','ן','ם','פ'],['ש','ד','ג','כ','ע','י','ח','ל','ך','ף'],['ז','ס','ב','ה','נ','מ','צ','ת','ץ','-']],
   en:[['q','w','e','r','t','y','u','i','o','p'],['a','s','d','f','g','h','j','k','l'],['z','x','c','v','b','n','m','-',"'"]]
 };
-function kSteps(){return kioskLoc==='jerusalem'?['name','phone']:['name','phone','price'];}
+function kSteps(){return (kioskLoc==='jerusalem'||!kPriceOn())?['name','phone']:['name','phone','price'];}
 function kCur(){var st=kSteps(),i=Math.max(0,Math.min(kioskState.step||0,st.length-1));return {i:i,k:st[i],n:st.length,last:i===st.length-1};}
 function kfmt(k,v){
   if(!v)return '<span class="kph">'+(k==='name'?'הקלידו כאן…':k==='phone'?'05X-XXXXXXX':'₪')+'</span>';
@@ -2318,7 +2318,7 @@ function kioskWizardHtml(){
   var ks=kioskState,c=kCur(),cf=KSTEP[c.k],v=String(ks[c.k]||'');
   return '<div class="kcard kwiz"><div class="kwl">'+
     '<div class="kstore display">'+esc(storeName())+(kioskLoc==='jerusalem'?' · ירושלים':'')+'</div>'+
-    (c.i===0?'<p class="ksub">'+(kioskLoc==='jerusalem'?'ברוכים הבאים! השאירו שם וטלפון, ונחזור אליכם כשהתיקון מוכן.':'ברוכים הבאים! מלאו שם, טלפון ומחיר. אחרי השליחה מסרו את המוצר לנציג.')+'</p>':'')+
+    (c.i===0?'<p class="ksub">'+(kioskLoc==='jerusalem'?'ברוכים הבאים! השאירו שם וטלפון, ונחזור אליכם כשהתיקון מוכן.':(kPriceOn()?'ברוכים הבאים! מלאו שם, טלפון ומחיר. אחרי השליחה מסרו את המוצר לנציג.':'ברוכים הבאים! מלאו שם וטלפון. אחרי השליחה מסרו את המוצר לנציג.'))+'</p>':'')+
     '<div class="kstep">'+kSteps().map(function(s,j){return '<span class="'+(j<c.i?'done':j===c.i?'on':'')+'"></span>';}).join('')+' <b>שלב '+(c.i+1)+' מתוך '+c.n+'</b></div>'+
     '<div class="kq">'+cf.t+'</div>'+(cf.ask?'<div class="kask">'+cf.ask+'</div>':'')+
     '<div class="kfield'+(c.k!=='name'?' num':'')+'" id="kfield">'+kfmt(c.k,v)+'<span class="kcaret"></span></div>'+
@@ -2409,6 +2409,7 @@ setInterval(function(){
 },1000);
 
 /* ---------- מתגים: מצב פשוט / ירושלים / וואטסאפ ---------- */
+function kPriceOn(){return !(S.settings&&S.settings.kpriceOff);}
 function simpleOn(){return !(S.settings&&S.settings.simpleOff);}
 function jlmOn(){return !(S.settings&&S.settings.jlmOff);}
 function waOn(){return !(S.settings&&S.settings.waOff);}
@@ -2417,6 +2418,7 @@ function modeCard(){
   return '<div class="card"><div class="h2">מצב עבודה</div>'+
     row('simpleOff',simpleOn(),'מצב פשוט','רשימה עם שם, טלפון ומחיר מהקיוסק, וכפתורים: הושלם / מחכה לחלק / לא רוצה')+
     row('jlmOff',jlmOn(),'ירושלים','מסך "חמישי", קיוסק ירושלים ולקוחות מירושלים')+
+    row('kpriceOff',kPriceOn(),'מחיר בקיוסק','כבוי: הלקוח ממלא בקיוסק רק שם וטלפון, והמחיר נקבע במסך הניהול')+
     row('waOff',waOn(),'הודעות וואטסאפ ללקוח','כבוי: כל כפתורי הוואטסאפ נעלמים, ונשאר כפתור 📞 התקשרות')+
     '<p class="muted sm" style="margin-bottom:0">אפשר לשנות בכל רגע. שום מידע לא נמחק.</p></div>';
 }
